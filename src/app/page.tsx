@@ -1,10 +1,10 @@
 'use client'
 
-import { useAuth } from '@/components/AuthContext'
+import { useSimpleAuth } from '@/components/SimpleAuthContext'
 import Link from 'next/link'
 
 export default function Home() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isAuthenticated } = useSimpleAuth()
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
@@ -17,9 +17,9 @@ export default function Home() {
             <div className="text-center py-4">
               <p className="text-gray-500">正在加载...</p>
             </div>
-          ) : user ? (
+          ) : isAuthenticated ? (
             <div className="space-y-6">
-              <h2 className="text-2xl font-semibold text-gray-800">欢迎回来，{user.email}</h2>
+              <h2 className="text-2xl font-semibold text-gray-800">欢迎回来，{user?.email}</h2>
               <p className="text-gray-600">您已成功登录系统，可以使用所有功能。</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
                 <Link
@@ -40,22 +40,16 @@ export default function Home() {
             <div className="space-y-6">
               <h2 className="text-2xl font-semibold text-gray-800">访问受限功能</h2>
               <p className="text-gray-600">
-                请登录或注册账户，以使用商品管理和图片上传等功能。
+                请登录账户，以使用商品管理和图片上传等功能。
                 <br />
                 只有已登录用户才能上传图片和管理商品。
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
                 <Link
-                  href="/auth/login"
+                  href="/auth/simple-login"
                   className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm"
                 >
-                  登录
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors shadow-sm"
-                >
-                  注册
+                  管理员登录
                 </Link>
               </div>
             </div>
