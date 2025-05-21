@@ -27,8 +27,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={inter.className}>
-        <Navigation />
-        <main className="min-h-screen bg-gray-50">{children}</main>
+        <div className="flex min-h-screen bg-gray-50">
+          <Navigation />
+          <main className="flex-1 ml-64 min-h-screen bg-gray-50 pb-10">{children}</main>
+        </div>
       </body>
     </html>
   );
