@@ -35,27 +35,51 @@ export interface Database {
           name: string
           description: string
           price: number
-          category_id: number
+          category: number
+          inventory?: number
+          rating?: number
+          reviews?: number
           created_at: string
-          updated_at: string
+          brand?: string
+          model?: string
+          specifications?: string
+          free_shipping?: boolean
+          returnable?: boolean
+          warranty?: boolean
         }
         Insert: {
           id?: number
           name: string
           description: string
           price: number
-          category_id: number
+          category: number
+          inventory?: number
+          rating?: number
+          reviews?: number
           created_at?: string
-          updated_at?: string
+          brand?: string
+          model?: string
+          specifications?: string
+          free_shipping?: boolean
+          returnable?: boolean
+          warranty?: boolean
         }
         Update: {
           id?: number
           name?: string
           description?: string
           price?: number
-          category_id?: number
+          category?: number
+          inventory?: number
+          rating?: number
+          reviews?: number
           created_at?: string
-          updated_at?: string
+          brand?: string
+          model?: string
+          specifications?: string
+          free_shipping?: boolean
+          returnable?: boolean
+          warranty?: boolean
         }
       }
     }

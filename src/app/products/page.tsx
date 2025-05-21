@@ -14,7 +14,7 @@ export default function ProductsPage() {
     name: '',
     description: '',
     price: '',
-    category_id: ''
+    category: ''
   })
 
   useEffect(() => {
@@ -22,16 +22,20 @@ export default function ProductsPage() {
     fetchCategories()
   }, [])
 
+  // 当分类加载完成后，自动选择第一个分类
+  useEffect(() => {
+    if (categories.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        category: categories[0].id.toString()
+      }))
+    }
+  }, [categories])
+
   async function fetchProducts() {
     const { data, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        categories (
-          id,
-          name
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -39,7 +43,7 @@ export default function ProductsPage() {
       return
     }
 
-    setProducts(data)
+    setProducts(data || [])
   }
 
   async function fetchCategories() {
@@ -53,11 +57,16 @@ export default function ProductsPage() {
       return
     }
 
-    setCategories(data)
+    setCategories(data || [])
   }
 
   async function addProduct(e: React.FormEvent) {
     e.preventDefault()
+    
+    if (!formData.category) {
+      alert('请选择一个分类')
+      return
+    }
     
     const { error } = await supabase
       .from('products')
@@ -65,11 +74,12 @@ export default function ProductsPage() {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: parseFloat(formData.price),
-        category_id: parseInt(formData.category_id)
+        category: parseInt(formData.category)
       }])
 
     if (error) {
       console.error('Error adding product:', error)
+      alert(`添加商品失败: ${error.message}`)
       return
     }
 
@@ -77,7 +87,7 @@ export default function ProductsPage() {
       name: '',
       description: '',
       price: '',
-      category_id: ''
+      category: categories.length > 0 ? categories[0].id.toString() : ''
     })
     fetchProducts()
   }
@@ -125,8 +135,8 @@ export default function ProductsPage() {
         <div>
           <label className="block text-sm font-medium mb-1">分类</label>
           <select
-            value={formData.category_id}
-            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+            value={formData.category} 
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })} 
             className="w-full px-4 py-2 border rounded"
             required
           >
@@ -148,19 +158,25 @@ export default function ProductsPage() {
       </form>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((product) => (
-          <div
-            key={product.id}
-            className="p-4 border rounded shadow hover:shadow-md"
-          >
-            <h3 className="text-lg font-semibold">{product.name}</h3>
-            <p className="text-sm text-gray-600 mb-2">{product.description}</p>
-            <p className="text-lg font-bold text-blue-600">¥{product.price.toFixed(2)}</p>
-            <p className="text-sm text-gray-500">
-              创建时间: {new Date(product.created_at).toLocaleString()}
-            </p>
-          </div>
-        ))}
+        {products.map((product) => {
+          // 查找分类名称
+          const categoryName = categories.find(c => c.id === product.category)?.name || '未知分类';
+          
+          return (
+            <div
+              key={product.id}
+              className="p-4 border rounded shadow hover:shadow-md"
+            >
+              <h3 className="text-lg font-semibold">{product.name}</h3>
+              <p className="text-sm text-gray-600 mb-1">{product.description}</p>
+              <p className="text-sm text-gray-500 mb-2">分类: {categoryName}</p>
+              <p className="text-lg font-bold text-blue-600">¥{product.price.toFixed(2)}</p>
+              <p className="text-sm text-gray-500">
+                创建时间: {new Date(product.created_at).toLocaleString()}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   )
