@@ -7,6 +7,9 @@ import { v4 as uuidv4 } from 'uuid'
 import Image from 'next/image'
 import { checkStorageSetup } from '@/lib/storage-check'
 
+// 定义存储桶名称为常量，与storage-check.ts保持一致
+const BUCKET_NAME = 'products';
+
 type Product = Database['public']['Tables']['products']['Row']
 type Category = Database['public']['Tables']['categories']['Row']
 
@@ -217,7 +220,7 @@ export default function ProductsPage() {
         
         // 上传文件到Supabase Storage
         const { error: uploadError } = await supabase.storage
-          .from('images')
+          .from(BUCKET_NAME)
           .upload(filePath, image.file, {
             cacheControl: '3600',
             upsert: false
@@ -229,7 +232,7 @@ export default function ProductsPage() {
         
         // 获取公共URL
         const { data: { publicUrl } } = supabase.storage
-          .from('images')
+          .from(BUCKET_NAME)
           .getPublicUrl(filePath)
         
         uploadedUrls.push({

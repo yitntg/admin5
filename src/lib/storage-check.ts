@@ -1,8 +1,11 @@
 import { supabase } from './supabase';
 
+// 定义存储桶名称为常量，方便维护
+const BUCKET_NAME = 'products';
+
 export async function checkStorageSetup() {
   try {
-    // 检查images bucket是否存在
+    // 检查存储桶是否存在
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
     if (bucketsError) {
@@ -14,18 +17,18 @@ export async function checkStorageSetup() {
       };
     }
     
-    const imagesBucketExists = buckets.some(bucket => bucket.name === 'images');
+    const bucketExists = buckets.some(bucket => bucket.name === BUCKET_NAME);
     
-    if (!imagesBucketExists) {
-      console.error('未找到images存储桶');
+    if (!bucketExists) {
+      console.error(`未找到${BUCKET_NAME}存储桶`);
       return {
         success: false,
-        message: '未找到images存储桶，请确认Supabase中已创建此存储桶',
+        message: `未找到${BUCKET_NAME}存储桶，请确认Supabase中已创建此存储桶`,
         error: null
       };
     }
     
-    console.log('images存储桶已存在');
+    console.log(`${BUCKET_NAME}存储桶已存在`);
     
     // 测试上传小文件
     try {
@@ -33,7 +36,7 @@ export async function checkStorageSetup() {
       const testFileName = `test-${Date.now()}.txt`;
       
       const { error: uploadError } = await supabase.storage
-        .from('images')
+        .from(BUCKET_NAME)
         .upload(`test/${testFileName}`, testData, {
           cacheControl: '3600',
           upsert: false
@@ -49,7 +52,7 @@ export async function checkStorageSetup() {
       }
       
       // 删除测试文件
-      await supabase.storage.from('images').remove([`test/${testFileName}`]);
+      await supabase.storage.from(BUCKET_NAME).remove([`test/${testFileName}`]);
       
       return {
         success: true,
