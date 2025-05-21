@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useAuth } from './AuthContext'
+import { useSimpleAuth } from './SimpleAuthContext'
 
 const Navigation = () => {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, signOut, isLoading } = useAuth()
+  const { user, signOut, isLoading, isAuthenticated } = useSimpleAuth()
 
   const links = [
     { href: '/', label: '首页', icon: '🏠' },
@@ -15,9 +15,9 @@ const Navigation = () => {
     { href: '/products', label: '商品管理', icon: '📦' },
   ]
   
-  const handleSignOut = async () => {
-    await signOut()
-    router.push('/auth/login')
+  const handleSignOut = () => {
+    signOut()
+    router.push('/auth/simple-login')
   }
 
   return (
@@ -53,10 +53,10 @@ const Navigation = () => {
         <div className="p-4 border-t">
           {isLoading ? (
             <div className="text-center text-sm text-gray-500">加载中...</div>
-          ) : user ? (
+          ) : isAuthenticated ? (
             <div className="space-y-2">
               <div className="bg-gray-100 p-3 rounded-md">
-                <div className="font-medium text-sm">{user.email}</div>
+                <div className="font-medium text-sm">{user?.email}</div>
                 <div className="text-xs text-gray-500">已登录</div>
               </div>
               <button
@@ -69,16 +69,10 @@ const Navigation = () => {
           ) : (
             <div className="space-y-2">
               <Link
-                href="/auth/login"
+                href="/auth/simple-login"
                 className="block w-full py-2 px-4 text-sm text-center text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
               >
-                登录
-              </Link>
-              <Link
-                href="/auth/register"
-                className="block w-full py-2 px-4 text-sm text-center text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors"
-              >
-                注册
+                管理员登录
               </Link>
             </div>
           )}

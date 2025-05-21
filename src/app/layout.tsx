@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
-import { AuthProvider } from "@/components/AuthContext";
+import { SimpleAuthProvider } from "@/components/SimpleAuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,12 +28,12 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={inter.className}>
-        <AuthProvider>
+        <SimpleAuthProvider>
           <div className="flex min-h-screen bg-gray-50">
             <Navigation />
             <main className="flex-1 ml-64 min-h-screen bg-gray-50 pb-10">{children}</main>
           </div>
-        </AuthProvider>
+        </SimpleAuthProvider>
       </body>
     </html>
   );
