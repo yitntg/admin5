@@ -8,6 +8,15 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "电商管理系统",
   description: "现代化电商管理平台",
+  icons: {
+    icon: [
+      {
+        url: 'https://raw.githubusercontent.com/vercel/next.js/canary/examples/blog-starter/public/favicon/favicon-32x32.png',
+        sizes: '32x32',
+        type: 'image/png',
+      }
+    ],
+  },
 };
 
 export default function RootLayout({

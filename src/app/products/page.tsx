@@ -18,6 +18,7 @@ export default function ProductsPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
   useEffect(() => {
     fetchProducts()
@@ -26,13 +27,13 @@ export default function ProductsPage() {
 
   // 当分类加载完成后，自动选择第一个分类
   useEffect(() => {
-    if (categories.length > 0) {
+    if (categories.length > 0 && !editingProduct) {
       setFormData(prev => ({
         ...prev,
         category: categories[0].id.toString()
       }))
     }
-  }, [categories])
+  }, [categories, editingProduct])
 
   async function fetchProducts() {
     const { data, error } = await supabase
@@ -62,7 +63,7 @@ export default function ProductsPage() {
     setCategories(data || [])
   }
 
-  async function addProduct(e: React.FormEvent) {
+  async function addOrUpdateProduct(e: React.FormEvent) {
     e.preventDefault()
     
     if (!formData.category) {
@@ -73,34 +74,69 @@ export default function ProductsPage() {
     setIsLoading(true)
     
     try {
-      const { error } = await supabase
-        .from('products')
-        .insert([{
-          name: formData.name.trim(),
-          description: formData.description.trim(),
-          price: parseFloat(formData.price),
-          category: parseInt(formData.category)
-        }])
+      const productData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: parseFloat(formData.price),
+        category: parseInt(formData.category)
+      }
+      
+      let error;
+      
+      if (editingProduct) {
+        // 更新商品
+        const result = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', editingProduct.id)
+        
+        error = result.error
+      } else {
+        // 添加新商品
+        const result = await supabase
+          .from('products')
+          .insert([productData])
+          
+        error = result.error
+      }
   
       if (error) {
-        console.error('Error adding product:', error)
-        alert(`添加商品失败: ${error.message}`)
+        console.error('Error saving product:', error)
+        alert(`${editingProduct ? '更新' : '添加'}商品失败: ${error.message}`)
         return
       }
   
-      setFormData({
-        name: '',
-        description: '',
-        price: '',
-        category: categories.length > 0 ? categories[0].id.toString() : ''
-      })
+      resetForm()
       await fetchProducts()
     } catch (err) {
       console.error('Error:', err)
-      alert('添加商品时发生错误')
+      alert(`${editingProduct ? '更新' : '添加'}商品时发生错误`)
     } finally {
       setIsLoading(false)
     }
+  }
+  
+  function resetForm() {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      category: categories.length > 0 ? categories[0].id.toString() : ''
+    })
+    setEditingProduct(null)
+  }
+  
+  function startEditing(product: Product) {
+    setEditingProduct(product)
+    setFormData({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      category: product.category.toString()
+    })
+    
+    // 滚动到表单
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   
   async function deleteProduct(id: number) {
@@ -135,7 +171,11 @@ export default function ProductsPage() {
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">商品管理</h1>
       
-      <form onSubmit={addProduct} className="mb-8 space-y-4">
+      <form onSubmit={addOrUpdateProduct} className="mb-8 space-y-4 bg-white p-6 rounded-lg shadow-sm">
+        <h2 className="text-xl font-semibold border-b pb-2 mb-4">
+          {editingProduct ? '编辑商品' : '添加新商品'}
+        </h2>
+        
         <div>
           <label className="block text-sm font-medium mb-1">商品名称</label>
           <input
@@ -188,13 +228,25 @@ export default function ProductsPage() {
           </select>
         </div>
         
-        <button
-          type="submit"
-          className="w-full px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
-          disabled={isLoading}
-        >
-          {isLoading ? '添加中...' : '添加商品'}
-        </button>
+        <div className="flex gap-4 pt-2">
+          <button
+            type="submit"
+            className="flex-1 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+            disabled={isLoading}
+          >
+            {isLoading ? (editingProduct ? '更新中...' : '添加中...') : (editingProduct ? '更新商品' : '添加商品')}
+          </button>
+          
+          {editingProduct && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-6 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+            >
+              取消
+            </button>
+          )}
+        </div>
       </form>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -205,9 +257,15 @@ export default function ProductsPage() {
           return (
             <div
               key={product.id}
-              className="p-4 border rounded shadow hover:shadow-md relative"
+              className="p-4 border rounded shadow hover:shadow-md relative bg-white"
             >
               <div className="absolute top-2 right-2 flex gap-2">
+                <button 
+                  onClick={() => startEditing(product)}
+                  className="p-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  编辑
+                </button>
                 <button 
                   onClick={() => deleteProduct(product.id)}
                   className="p-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-red-300"

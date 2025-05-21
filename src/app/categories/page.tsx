@@ -12,6 +12,7 @@ export default function CategoriesPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
 
   useEffect(() => {
     fetchCategories()
@@ -33,32 +34,57 @@ export default function CategoriesPage() {
     setErrorMessage(null)
   }
 
-  async function addCategory(e: React.FormEvent) {
+  async function addOrUpdateCategory(e: React.FormEvent) {
     e.preventDefault()
     if (!newCategory.trim()) return
     
     setIsLoading(true)
     
     try {
-      const { error } = await supabase
-        .from('categories')
-        .insert([{ name: newCategory.trim() }])
+      let error;
+      
+      if (editingCategory) {
+        // 更新分类
+        const result = await supabase
+          .from('categories')
+          .update({ name: newCategory.trim() })
+          .eq('id', editingCategory.id)
+          
+        error = result.error
+      } else {
+        // 添加新分类
+        const result = await supabase
+          .from('categories')
+          .insert([{ name: newCategory.trim() }])
+          
+        error = result.error
+      }
   
       if (error) {
-        console.error('Error adding category:', error)
-        setErrorMessage(`添加分类失败: ${error.message}`)
+        console.error('Error saving category:', error)
+        setErrorMessage(`${editingCategory ? '更新' : '添加'}分类失败: ${error.message}`)
         return
       }
   
-      setNewCategory('')
+      resetForm()
       setErrorMessage(null)
       await fetchCategories()
     } catch (err) {
       console.error('Error:', err)
-      setErrorMessage('添加分类时发生错误')
+      setErrorMessage(`${editingCategory ? '更新' : '添加'}分类时发生错误`)
     } finally {
       setIsLoading(false)
     }
+  }
+  
+  function resetForm() {
+    setNewCategory('')
+    setEditingCategory(null)
+  }
+  
+  function startEditing(category: Category) {
+    setEditingCategory(category)
+    setNewCategory(category.name)
   }
   
   async function deleteCategory(id: number) {
@@ -100,7 +126,11 @@ export default function CategoriesPage() {
         </div>
       )}
       
-      <form onSubmit={addCategory} className="mb-8">
+      <form onSubmit={addOrUpdateCategory} className="mb-8 bg-white p-6 rounded-lg shadow-sm">
+        <h2 className="text-xl font-semibold border-b pb-2 mb-4">
+          {editingCategory ? '编辑分类' : '添加新分类'}
+        </h2>
+        
         <div className="flex gap-4">
           <input
             type="text"
@@ -115,8 +145,20 @@ export default function CategoriesPage() {
             className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
             disabled={isLoading || !newCategory.trim()}
           >
-            {isLoading ? '添加中...' : '添加分类'}
+            {isLoading 
+              ? (editingCategory ? '更新中...' : '添加中...') 
+              : (editingCategory ? '更新分类' : '添加分类')}
           </button>
+          
+          {editingCategory && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-6 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+            >
+              取消
+            </button>
+          )}
         </div>
       </form>
 
@@ -124,9 +166,15 @@ export default function CategoriesPage() {
         {categories.map((category) => (
           <div
             key={category.id}
-            className="p-4 border rounded shadow hover:shadow-md relative"
+            className="p-4 border rounded shadow hover:shadow-md relative bg-white"
           >
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 right-2 flex gap-2">
+              <button 
+                onClick={() => startEditing(category)}
+                className="p-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                编辑
+              </button>
               <button 
                 onClick={() => deleteCategory(category.id)}
                 className="p-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-red-300"
@@ -136,7 +184,7 @@ export default function CategoriesPage() {
               </button>
             </div>
             
-            <h3 className="text-lg font-semibold pr-12">{category.name}</h3>
+            <h3 className="text-lg font-semibold pr-16">{category.name}</h3>
             <p className="text-sm text-gray-500">
               创建时间: {new Date(category.created_at).toLocaleString()}
             </p>
