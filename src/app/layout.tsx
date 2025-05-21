@@ -27,11 +27,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      </head>
       <body className={inter.className}>
         <SimpleAuthProvider>
           <div className="flex min-h-screen bg-gray-50">
             <Navigation />
-            <main className="flex-1 ml-64 min-h-screen bg-gray-50 pb-10">{children}</main>
+            <main className="flex-1 md:ml-64 min-h-screen bg-gray-50 pb-10 pt-16 md:pt-0">{children}</main>
           </div>
         </SimpleAuthProvider>
       </body>

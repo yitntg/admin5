@@ -502,48 +502,48 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800 border-b pb-3">商品管理</h1>
+    <div className="container mx-auto p-3 md:p-6">
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 text-gray-800 border-b pb-3">商品管理</h1>
       
       {!storageStatus.ready && storageStatus.checked && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
+        <div className="mb-4 md:mb-6 p-3 md:p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
           <p className="font-medium">存储服务未准备好</p>
-          <p className="text-sm mt-1">{storageStatus.message}</p>
+          <p className="text-xs md:text-sm mt-1">{storageStatus.message}</p>
           <button 
             onClick={verifyStorageSetup}
-            className="mt-2 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+            className="mt-2 px-2 py-1 md:px-3 md:py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-xs"
           >
             重试
           </button>
         </div>
       )}
       
-      <form onSubmit={addOrUpdateProduct} className="mb-8 space-y-5 bg-white p-6 rounded-lg shadow-md border border-gray-100">
-        <h2 className="text-xl font-semibold border-b pb-3 mb-4 text-gray-700">
+      <form onSubmit={addOrUpdateProduct} className="mb-6 md:mb-8 space-y-4 md:space-y-5 bg-white p-4 md:p-6 rounded-lg shadow-md border border-gray-100">
+        <h2 className="text-lg md:text-xl font-semibold border-b pb-3 mb-3 md:mb-4 text-gray-700">
           {editingProduct ? '编辑商品' : '添加新商品'}
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">商品名称</label>
+            <label className="block text-sm font-medium mb-1 md:mb-2 text-gray-700">商品名称</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 md:px-4 md:py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
               required
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">价格</label>
+            <label className="block text-sm font-medium mb-1 md:mb-2 text-gray-700">价格</label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500">¥</span>
+              <span className="absolute left-3 top-2 md:top-2.5 text-gray-500">¥</span>
               <input
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full pl-7 md:pl-8 pr-3 md:pr-4 py-2 md:py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                 step="0.01"
                 min="0"
                 required
@@ -553,22 +553,22 @@ export default function ProductsPage() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">商品描述</label>
+          <label className="block text-sm font-medium mb-1 md:mb-2 text-gray-700">商品描述</label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="w-full px-3 py-2 md:px-4 md:py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
             rows={3}
             required
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">分类</label>
+          <label className="block text-sm font-medium mb-1 md:mb-2 text-gray-700">分类</label>
           <select
             value={formData.category} 
             onChange={(e) => setFormData({ ...formData, category: e.target.value })} 
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="w-full px-3 py-2 md:px-4 md:py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
             required
           >
             <option value="">选择分类</option>
@@ -581,8 +581,8 @@ export default function ProductsPage() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">商品图片（最多5张）</label>
-          <div className="mt-1 flex items-center">
+          <label className="block text-sm font-medium mb-1 md:mb-2 text-gray-700">商品图片（最多5张）</label>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             <input
               type="file"
               accept="image/*"
@@ -594,7 +594,7 @@ export default function ProductsPage() {
             />
             <label
               htmlFor="product-images-upload"
-              className={`px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 cursor-pointer transition-colors ${
+              className={`px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 cursor-pointer transition-colors text-sm ${
                 productImages.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -604,7 +604,7 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={clearAllImages}
-                className="ml-4 text-red-500 hover:text-red-700"
+                className="px-3 py-1.5 md:px-4 md:py-2 text-red-500 hover:text-red-700 text-sm"
               >
                 清除所有图片
               </button>
@@ -616,10 +616,10 @@ export default function ProductsPage() {
           </p>
           
           {productImages.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <div className="mt-3 md:mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
               {productImages.map(image => (
                 <div key={image.id} className="relative">
-                  <div className={`relative w-full h-32 rounded-md overflow-hidden border ${image.isMain ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-200'}`}>
+                  <div className={`relative w-full h-24 md:h-32 rounded-md overflow-hidden border ${image.isMain ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-200'}`}>
                     <img 
                       src={image.previewUrl} 
                       alt="商品预览" 
@@ -627,12 +627,12 @@ export default function ProductsPage() {
                     />
                     {image.uploading && (
                       <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                        <span className="text-white text-sm">上传中...</span>
+                        <span className="text-white text-xs md:text-sm">上传中...</span>
                       </div>
                     )}
                     {image.error && (
                       <div className="absolute inset-0 bg-red-500 bg-opacity-30 flex items-center justify-center">
-                        <span className="text-white text-sm">上传失败</span>
+                        <span className="text-white text-xs md:text-sm">上传失败</span>
                       </div>
                     )}
                     {image.isMain && (
@@ -645,7 +645,7 @@ export default function ProductsPage() {
                     <button
                       type="button"
                       onClick={() => removeImage(image.id)}
-                      className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                      className="w-5 h-5 md:w-6 md:h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 text-xs md:text-sm"
                     >
                       ×
                     </button>
@@ -654,7 +654,7 @@ export default function ProductsPage() {
                     <button
                       type="button"
                       onClick={() => setAsMainImage(image.id)}
-                      className="absolute bottom-1 right-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded hover:bg-blue-600"
+                      className="absolute bottom-1 right-1 bg-blue-500 text-white text-xs px-1 py-0.5 rounded hover:bg-blue-600"
                     >
                       设为主图
                     </button>
@@ -670,10 +670,10 @@ export default function ProductsPage() {
           )}
         </div>
         
-        <div className="flex gap-4 pt-3">
+        <div className="flex gap-2 md:gap-4 pt-3">
           <button
             type="submit"
-            className="flex-1 px-6 py-2.5 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition-colors shadow-sm"
+            className="flex-1 px-4 py-2 md:px-6 md:py-2.5 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition-colors shadow-sm text-sm"
             disabled={isLoading || !storageStatus.ready}
           >
             {isLoading ? (editingProduct ? '更新中...' : '添加中...') : (editingProduct ? '更新商品' : '添加商品')}
@@ -683,7 +683,7 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-md hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 md:px-6 md:py-2.5 bg-gray-200 text-gray-700 font-medium rounded-md hover:bg-gray-300 transition-colors text-sm"
             >
               取消
             </button>
@@ -691,7 +691,7 @@ export default function ProductsPage() {
         </div>
       </form>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {products.map((product) => {
           // 查找分类名称
           const categoryName = categories.find(c => c.id === product.category)?.name || '未知分类';
@@ -704,27 +704,27 @@ export default function ProductsPage() {
           return (
             <div
               key={product.id}
-              className="p-5 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow relative bg-white overflow-hidden"
+              className="p-3 md:p-5 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow relative bg-white overflow-hidden"
             >
-              <div className="absolute top-3 right-3 flex gap-2">
+              <div className="absolute top-2 md:top-3 right-2 md:right-3 flex gap-1 md:gap-2">
                 <button 
                   onClick={() => startEditing(product)}
-                  className="p-1.5 px-3 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+                  className="p-1 md:p-1.5 px-2 md:px-3 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm"
                 >
                   编辑
                 </button>
                 <button 
                   onClick={() => deleteProduct(product.id)}
-                  className="p-1.5 px-3 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 disabled:bg-red-300 transition-colors shadow-sm"
+                  className="p-1 md:p-1.5 px-2 md:px-3 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 disabled:bg-red-300 transition-colors shadow-sm"
                   disabled={deleteLoading === product.id}
                 >
                   {deleteLoading === product.id ? '删除中...' : '删除'}
                 </button>
               </div>
               
-              <div className="mb-4">
+              <div className="mb-3 md:mb-4">
                 {/* 主图 */}
-                <div className="h-40 rounded-md overflow-hidden bg-gray-100 mb-2">
+                <div className="h-32 md:h-40 rounded-md overflow-hidden bg-gray-100 mb-2">
                   {mainImage ? (
                     <img 
                       src={mainImage} 
@@ -733,16 +733,16 @@ export default function ProductsPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                      <span className="text-gray-400">无图片</span>
+                      <span className="text-gray-400 text-sm">无图片</span>
                     </div>
                   )}
                 </div>
                 
                 {/* 缩略图 */}
                 {additionalImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 mt-2">
+                  <div className="grid grid-cols-4 gap-1 md:gap-2 mt-1 md:mt-2">
                     {additionalImages.slice(0, 4).map((url, idx) => (
-                      <div key={idx} className="h-16 rounded-md overflow-hidden bg-gray-100">
+                      <div key={idx} className="h-12 md:h-16 rounded-md overflow-hidden bg-gray-100">
                         <img 
                           src={url} 
                           alt={`${product.name}-${idx}`} 
@@ -754,17 +754,17 @@ export default function ProductsPage() {
                 )}
               </div>
               
-              <h3 className="text-lg font-semibold pr-20 text-gray-800 mb-2">{product.name}</h3>
-              <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
+              <h3 className="text-base md:text-lg font-semibold pr-16 md:pr-20 text-gray-800 mb-1 md:mb-2 line-clamp-2">{product.name}</h3>
+              <p className="text-xs md:text-sm text-gray-600 mb-2 md:mb-3 line-clamp-2">{product.description}</p>
               
-              <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
-                <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+              <div className="flex justify-between items-center mt-2 md:mt-4 pt-2 md:pt-3 border-t border-gray-100">
+                <span className="inline-block px-1.5 md:px-2 py-0.5 md:py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
                   {categoryName}
                 </span>
-                <p className="text-lg font-bold text-blue-600">¥{product.price.toFixed(2)}</p>
+                <p className="text-base md:text-lg font-bold text-blue-600">¥{product.price.toFixed(2)}</p>
               </div>
               
-              <p className="text-xs text-gray-500 mt-3">
+              <p className="text-xs text-gray-500 mt-2 md:mt-3">
                 创建时间: {new Date(product.created_at).toLocaleString()}
               </p>
             </div>
