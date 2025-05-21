@@ -19,6 +19,7 @@ interface ProductImage {
   uploading: boolean;
   error: string | null;
   publicUrl: string | null;
+  isMain: boolean; // 标记是否为主图
 }
 
 export default function ProductsPage() {
@@ -29,13 +30,10 @@ export default function ProductsPage() {
     description: '',
     price: '',
     category: '',
-    image_url: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [storageStatus, setStorageStatus] = useState<{
     checked: boolean;
@@ -113,34 +111,7 @@ export default function ProductsPage() {
     setCategories(data || [])
   }
 
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // 检查文件类型
-    if (!file.type.startsWith('image/')) {
-      alert('请上传图片文件')
-      return
-    }
-
-    // 限制文件大小（2MB）
-    if (file.size > 2 * 1024 * 1024) {
-      alert('图片大小不能超过2MB')
-      return
-    }
-
-    setImageFile(file)
-    
-    // 创建预览URL
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-  }
-  
-  // 处理多图片上传
-  function handleMultipleImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files
     if (!files || files.length === 0) return
     
@@ -150,7 +121,7 @@ export default function ProductsPage() {
       return
     }
     
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file, index) => {
       // 检查文件类型
       if (!file.type.startsWith('image/')) {
         alert('请上传图片文件')
@@ -166,84 +137,58 @@ export default function ProductsPage() {
       // 创建预览URL
       const reader = new FileReader()
       reader.onloadend = () => {
-        setProductImages(prev => [...prev, {
-          id: uuidv4(),
-          file,
-          previewUrl: reader.result as string,
-          uploaded: false,
-          uploading: false,
-          error: null,
-          publicUrl: null
-        }])
+        setProductImages(prev => {
+          // 如果没有图片或者添加第一张图片，则设为主图
+          const isMain = prev.length === 0 || (index === 0 && prev.every(img => !img.isMain));
+          
+          return [...prev, {
+            id: uuidv4(),
+            file,
+            previewUrl: reader.result as string,
+            uploaded: false,
+            uploading: false,
+            error: null,
+            publicUrl: null,
+            isMain
+          }]
+        })
       }
       reader.readAsDataURL(file)
     })
   }
   
-  // 删除多图片中的一张
+  // 设置主图
+  function setAsMainImage(id: string) {
+    setProductImages(prev => 
+      prev.map(img => ({
+        ...img,
+        isMain: img.id === id
+      }))
+    )
+  }
+  
+  // 删除一张图片
   function removeImage(id: string) {
-    setProductImages(prev => prev.filter(img => img.id !== id))
+    setProductImages(prev => {
+      const filteredImages = prev.filter(img => img.id !== id);
+      
+      // 如果删除的是主图且还有其他图片，则将第一张设为主图
+      if (prev.find(img => img.id === id)?.isMain && filteredImages.length > 0) {
+        filteredImages[0].isMain = true;
+      }
+      
+      return filteredImages;
+    })
   }
   
-  function clearImage() {
-    setImageFile(null)
-    setImagePreview(null)
-    setFormData(prev => ({ ...prev, image_url: '' }))
-  }
-  
-  // 清除所有多图片
   function clearAllImages() {
     setProductImages([])
   }
 
-  async function uploadImage() {
-    if (!imageFile) return null
-    
-    try {
-      setUploadProgress(10) // 开始上传
-      
-      // 生成唯一文件名
-      const fileExt = imageFile.name.split('.').pop()
-      const fileName = `${uuidv4()}.${fileExt}`
-      const filePath = `products/${fileName}`
-      
-      setUploadProgress(30) // 准备上传
-      
-      // 上传文件到Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
-        .from('images')
-        .upload(filePath, imageFile, {
-          cacheControl: '3600',
-          upsert: false
-        })
-      
-      setUploadProgress(70) // 上传完成
-      
-      if (uploadError) {
-        throw uploadError
-      }
-      
-      // 获取公共URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath)
-      
-      setUploadProgress(100) // 获取URL完成
-      
-      return publicUrl
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      alert('图片上传失败')
-      setUploadProgress(0)
-      return null
-    }
-  }
-  
-  // 上传多张图片并获取URL
-  async function uploadMultipleImages() {
+  async function uploadImages() {
     if (productImages.length === 0) return []
     
-    const uploadedUrls: string[] = []
+    const uploadedUrls: {url: string, isMain: boolean}[] = []
     const updatedImages = [...productImages]
     
     // 逐个上传图片
@@ -252,7 +197,10 @@ export default function ProductsPage() {
       
       if (!image.file || image.uploaded) {
         if (image.publicUrl) {
-          uploadedUrls.push(image.publicUrl)
+          uploadedUrls.push({
+            url: image.publicUrl,
+            isMain: image.isMain
+          })
         }
         continue
       }
@@ -284,7 +232,10 @@ export default function ProductsPage() {
           .from('images')
           .getPublicUrl(filePath)
         
-        uploadedUrls.push(publicUrl)
+        uploadedUrls.push({
+          url: publicUrl,
+          isMain: image.isMain
+        })
         
         // 更新上传状态
         updatedImages[i] = {
@@ -324,30 +275,26 @@ export default function ProductsPage() {
       return
     }
     
+    if (productImages.length === 0) {
+      alert('请至少上传一张商品图片')
+      return
+    }
+    
     setIsLoading(true)
     
     try {
-      // 上传多张图片
-      const multipleImageUrls = await uploadMultipleImages()
+      // 上传图片
+      const imageUrls = await uploadImages()
       
-      // 如果有单张主图，先上传
-      let mainImageUrl = formData.image_url
-      if (imageFile) {
-        const uploadedUrl = await uploadImage()
-        if (uploadedUrl) {
-          mainImageUrl = uploadedUrl
-        }
-      }
+      // 分离主图和额外图片
+      const mainImage = imageUrls.find(img => img.isMain)?.url || '';
+      const additionalImages = imageUrls.filter(img => !img.isMain).map(img => img.url);
       
       // 组合所有图片URL（逗号分隔）
-      let allImageUrls = mainImageUrl
+      let allImageUrls = mainImage;
       
-      if (multipleImageUrls.length > 0) {
-        if (allImageUrls) {
-          allImageUrls += ',' + multipleImageUrls.join(',')
-        } else {
-          allImageUrls = multipleImageUrls.join(',')
-        }
+      if (additionalImages.length > 0) {
+        allImageUrls += ',' + additionalImages.join(',');
       }
       
       const productData = {
@@ -400,78 +347,53 @@ export default function ProductsPage() {
       description: '',
       price: '',
       category: categories.length > 0 ? categories[0].id.toString() : '',
-      image_url: ''
     })
     setEditingProduct(null)
-    setImageFile(null)
-    setImagePreview(null)
     setProductImages([])
   }
   
   function startEditing(product: Product) {
     setEditingProduct(product)
     
-    // 处理多图片
+    // 处理图片
     if (product.image_url) {
-      const imageUrls = product.image_url.split(',')
+      const imageUrls = product.image_url.split(',').filter(Boolean);
+      const productImgs: ProductImage[] = [];
       
-      // 第一张作为主图
-      if (imageUrls.length > 0 && imageUrls[0]) {
-        setImagePreview(imageUrls[0])
-        setFormData({
-          name: product.name,
-          description: product.description,
-          price: product.price.toString(),
-          category: product.category.toString(),
-          image_url: imageUrls[0]
-        })
-      } else {
-        setImagePreview(null)
-        setFormData({
-          name: product.name,
-          description: product.description,
-          price: product.price.toString(),
-          category: product.category.toString(),
-          image_url: ''
-        })
-      }
+      // 处理图片，第一张为主图
+      imageUrls.forEach((url, index) => {
+        productImgs.push({
+          id: uuidv4(),
+          file: null,
+          previewUrl: url,
+          uploaded: true,
+          uploading: false,
+          error: null,
+          publicUrl: url,
+          isMain: index === 0 // 第一张为主图
+        });
+      });
       
-      // 剩余图片作为多图
-      const additionalImages: ProductImage[] = []
+      setProductImages(productImgs);
       
-      if (imageUrls.length > 1) {
-        imageUrls.slice(1).forEach(url => {
-          if (url) {
-            additionalImages.push({
-              id: uuidv4(),
-              file: null,
-              previewUrl: url,
-              uploaded: true,
-              uploading: false,
-              error: null,
-              publicUrl: url
-            })
-          }
-        })
-      }
-      
-      setProductImages(additionalImages)
+      setFormData({
+        name: product.name,
+        description: product.description,
+        price: product.price.toString(),
+        category: product.category.toString(),
+      });
     } else {
       setFormData({
         name: product.name,
         description: product.description,
         price: product.price.toString(),
         category: product.category.toString(),
-        image_url: ''
-      })
-      setImagePreview(null)
-      setProductImages([])
+      });
+      setProductImages([]);
     }
     
-    setImageFile(null)
-    
     // 滚动到表单
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   
   async function deleteProduct(id: number) {
@@ -588,76 +510,24 @@ export default function ProductsPage() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">主商品图片</label>
+          <label className="block text-sm font-medium mb-2 text-gray-700">商品图片（最多5张）</label>
           <div className="mt-1 flex items-center">
             <input
               type="file"
               accept="image/*"
-              onChange={handleImageChange}
+              onChange={handleImagesChange}
               className="hidden"
-              id="image-upload"
-            />
-            <label
-              htmlFor="image-upload"
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 cursor-pointer transition-colors"
-            >
-              选择主图片
-            </label>
-            {(imagePreview || formData.image_url) && (
-              <button
-                type="button"
-                onClick={clearImage}
-                className="ml-4 text-red-500 hover:text-red-700"
-              >
-                删除主图片
-              </button>
-            )}
-          </div>
-          
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="mt-2">
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div 
-                  className="bg-blue-600 h-2.5 rounded-full" 
-                  style={{ width: `${uploadProgress}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">上传中 {uploadProgress}%</p>
-            </div>
-          )}
-          
-          {imagePreview && (
-            <div className="mt-4">
-              <div className="relative w-40 h-40 rounded-md overflow-hidden border border-gray-200">
-                <img 
-                  src={imagePreview} 
-                  alt="商品预览" 
-                  className="object-cover w-full h-full"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">额外商品图片（最多5张）</label>
-          <div className="mt-1 flex items-center">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleMultipleImagesChange}
-              className="hidden"
-              id="multiple-images-upload"
+              id="product-images-upload"
               multiple
               disabled={productImages.length >= 5}
             />
             <label
-              htmlFor="multiple-images-upload"
+              htmlFor="product-images-upload"
               className={`px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 cursor-pointer transition-colors ${
                 productImages.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              选择额外图片
+              选择图片
             </label>
             {productImages.length > 0 && (
               <button
@@ -665,16 +535,20 @@ export default function ProductsPage() {
                 onClick={clearAllImages}
                 className="ml-4 text-red-500 hover:text-red-700"
               >
-                删除所有额外图片
+                清除所有图片
               </button>
             )}
           </div>
+          
+          <p className="text-xs text-gray-500 mt-2 mb-2">
+            第一张图片将作为商品主图显示，您可以点击"设为主图"按钮更换主图。
+          </p>
           
           {productImages.length > 0 && (
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {productImages.map(image => (
                 <div key={image.id} className="relative">
-                  <div className="relative w-full h-32 rounded-md overflow-hidden border border-gray-200">
+                  <div className={`relative w-full h-32 rounded-md overflow-hidden border ${image.isMain ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-200'}`}>
                     <img 
                       src={image.previewUrl} 
                       alt="商品预览" 
@@ -690,16 +564,32 @@ export default function ProductsPage() {
                         <span className="text-white text-sm">上传失败</span>
                       </div>
                     )}
+                    {image.isMain && (
+                      <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1 py-0.5 rounded">
+                        主图
+                      </div>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeImage(image.id)}
-                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                  >
-                    ×
-                  </button>
+                  <div className="absolute top-1 right-1 flex space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => removeImage(image.id)}
+                      className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {!image.isMain && (
+                    <button
+                      type="button"
+                      onClick={() => setAsMainImage(image.id)}
+                      className="absolute bottom-1 right-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded hover:bg-blue-600"
+                    >
+                      设为主图
+                    </button>
+                  )}
                   {image.uploaded && (
-                    <span className="absolute bottom-1 right-1 bg-green-500 text-white text-xs px-1 rounded">
+                    <span className="absolute bottom-1 left-1 bg-green-500 text-white text-xs px-1 rounded">
                       已上传
                     </span>
                   )}
