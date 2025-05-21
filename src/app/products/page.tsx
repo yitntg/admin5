@@ -31,6 +31,7 @@ interface ProductImage {
   error: string | null;
   publicUrl: string | null;
   isMain: boolean; // 标记是否为主图
+  fileType: string; // 标记文件类型
 }
 
 export default function ProductsPage() {
@@ -166,20 +167,24 @@ export default function ProductsPage() {
     
     // 检查文件数量限制
     if (productImages.length + files.length > 5) {
-      alert('最多只能上传5张图片')
+      alert('最多只能上传5个媒体文件')
       return
     }
     
     Array.from(files).forEach((file, index) => {
-      // 检查文件类型
-      if (!file.type.startsWith('image/')) {
-        alert('请上传图片文件')
+      // 检查文件类型是图片或视频
+      const isImage = file.type.startsWith('image/')
+      const isVideo = file.type.startsWith('video/')
+      
+      if (!isImage && !isVideo) {
+        alert('请上传图片或视频文件')
         return
       }
       
-      // 限制文件大小（2MB）
-      if (file.size > 2 * 1024 * 1024) {
-        alert('图片大小不能超过2MB')
+      // 限制文件大小（图片2MB，视频10MB）
+      const sizeLimit = isVideo ? 10 * 1024 * 1024 : 2 * 1024 * 1024
+      if (file.size > sizeLimit) {
+        alert(`${isVideo ? '视频' : '图片'}大小不能超过${isVideo ? '10MB' : '2MB'}`)
         return
       }
       
@@ -198,7 +203,8 @@ export default function ProductsPage() {
             uploading: false,
             error: null,
             publicUrl: null,
-            isMain
+            isMain,
+            fileType: isVideo ? 'video' : 'image'
           }]
         })
       }
@@ -325,7 +331,7 @@ export default function ProductsPage() {
     }
     
     if (productImages.length === 0) {
-      alert('请至少上传一张商品图片')
+      alert('请至少上传一个商品媒体')
       return
     }
     
@@ -442,7 +448,8 @@ export default function ProductsPage() {
           uploading: false,
           error: null,
           publicUrl: img.image_url,
-          isMain: img.is_main
+          isMain: img.is_main,
+          fileType: img.image_url.endsWith('.mp4') ? 'video' : 'image'
         });
       });
       
@@ -581,11 +588,11 @@ export default function ProductsPage() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-1 md:mb-2 text-gray-700">商品图片（最多5张）</label>
+          <label className="block text-sm font-medium mb-1 md:mb-2 text-gray-700">商品媒体（最多5个）</label>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               onChange={handleImagesChange}
               className="hidden"
               id="product-images-upload"
@@ -598,7 +605,7 @@ export default function ProductsPage() {
                 productImages.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              选择图片
+              选择媒体文件
             </label>
             {productImages.length > 0 && (
               <button
@@ -606,13 +613,13 @@ export default function ProductsPage() {
                 onClick={clearAllImages}
                 className="px-3 py-1.5 md:px-4 md:py-2 text-red-500 hover:text-red-700 text-sm"
               >
-                清除所有图片
+                清除所有媒体
               </button>
             )}
           </div>
           
           <p className="text-xs text-gray-500 mt-2 mb-2">
-            第一张图片将作为商品主图显示，您可以点击"设为主图"按钮更换主图。
+            第一个媒体文件将作为商品主图显示，您可以点击"设为主图"按钮更换主图。
           </p>
           
           {productImages.length > 0 && (
@@ -620,11 +627,19 @@ export default function ProductsPage() {
               {productImages.map(image => (
                 <div key={image.id} className="relative">
                   <div className={`relative w-full h-24 md:h-32 rounded-md overflow-hidden border ${image.isMain ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-200'}`}>
-                    <img 
-                      src={image.previewUrl} 
-                      alt="商品预览" 
-                      className="object-cover w-full h-full"
-                    />
+                    {image.fileType === 'video' ? (
+                      <video 
+                        src={image.previewUrl} 
+                        className="object-cover w-full h-full"
+                        muted
+                      />
+                    ) : (
+                      <img 
+                        src={image.previewUrl} 
+                        alt="商品预览" 
+                        className="object-cover w-full h-full"
+                      />
+                    )}
                     {image.uploading && (
                       <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
                         <span className="text-white text-xs md:text-sm">上传中...</span>
@@ -726,11 +741,19 @@ export default function ProductsPage() {
                 {/* 主图 */}
                 <div className="h-32 md:h-40 rounded-md overflow-hidden bg-gray-100 mb-2">
                   {mainImage ? (
-                    <img 
-                      src={mainImage} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover"
-                    />
+                    mainImage.endsWith('.mp4') ? (
+                      <video 
+                        src={mainImage} 
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                    ) : (
+                      <img 
+                        src={mainImage} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    )
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-200">
                       <span className="text-gray-400 text-sm">无图片</span>
@@ -743,11 +766,19 @@ export default function ProductsPage() {
                   <div className="grid grid-cols-4 gap-1 md:gap-2 mt-1 md:mt-2">
                     {additionalImages.slice(0, 4).map((url, idx) => (
                       <div key={idx} className="h-12 md:h-16 rounded-md overflow-hidden bg-gray-100">
-                        <img 
-                          src={url} 
-                          alt={`${product.name}-${idx}`} 
-                          className="w-full h-full object-cover"
-                        />
+                        {url.endsWith('.mp4') ? (
+                          <video 
+                            src={url} 
+                            className="w-full h-full object-cover"
+                            muted
+                          />
+                        ) : (
+                          <img 
+                            src={url} 
+                            alt={`${product.name}-${idx}`} 
+                            className="w-full h-full object-cover"
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
