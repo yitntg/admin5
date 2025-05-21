@@ -36,6 +36,7 @@ export interface Database {
           description: string
           price: number
           category: number
+          image_url?: string
           inventory?: number
           rating?: number
           reviews?: number
@@ -53,6 +54,7 @@ export interface Database {
           description: string
           price: number
           category: number
+          image_url?: string
           inventory?: number
           rating?: number
           reviews?: number
@@ -70,6 +72,7 @@ export interface Database {
           description?: string
           price?: number
           category?: number
+          image_url?: string
           inventory?: number
           rating?: number
           reviews?: number
