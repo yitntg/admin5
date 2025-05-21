@@ -10,7 +10,15 @@ import { checkStorageSetup } from '@/lib/storage-check'
 // 定义存储桶名称为常量，与storage-check.ts保持一致
 const BUCKET_NAME = 'products';
 
-type Product = Database['public']['Tables']['products']['Row']
+type Product = Database['public']['Tables']['products']['Row'] & {
+  product_images?: Array<{
+    id: number;
+    product_id: number;
+    image_url: string;
+    is_main: boolean;
+    display_order: number;
+  }>
+}
 type Category = Database['public']['Tables']['categories']['Row']
 
 // 多图片类型定义
@@ -87,9 +95,18 @@ export default function ProductsPage() {
   }, [categories, editingProduct])
 
   async function fetchProducts() {
+    // 使用联接查询获取产品及其图片
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        product_images (
+          id,
+          image_url,
+          is_main,
+          display_order
+        )
+      `)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -289,25 +306,15 @@ export default function ProductsPage() {
       // 上传图片
       const imageUrls = await uploadImages()
       
-      // 分离主图和额外图片
-      const mainImage = imageUrls.find(img => img.isMain)?.url || '';
-      const additionalImages = imageUrls.filter(img => !img.isMain).map(img => img.url);
-      
-      // 组合所有图片URL（逗号分隔）
-      let allImageUrls = mainImage;
-      
-      if (additionalImages.length > 0) {
-        allImageUrls += ',' + additionalImages.join(',');
-      }
-      
+      // 商品数据（不包含image_url字段）
       const productData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: parseFloat(formData.price),
-        category: parseInt(formData.category),
-        image_url: allImageUrls
+        category: parseInt(formData.category)
       }
       
+      let productId: number;
       let error;
       
       if (editingProduct) {
@@ -318,19 +325,53 @@ export default function ProductsPage() {
           .eq('id', editingProduct.id)
         
         error = result.error
+        productId = editingProduct.id
       } else {
         // 添加新商品
         const result = await supabase
           .from('products')
           .insert([productData])
+          .select()
           
         error = result.error
+        productId = result.data?.[0]?.id
       }
   
       if (error) {
         console.error('Error saving product:', error)
         alert(`${editingProduct ? '更新' : '添加'}商品失败: ${error.message}`)
         return
+      }
+      
+      // 如果是编辑模式，先删除旧的图片关联
+      if (editingProduct) {
+        const { error: deleteError } = await supabase
+          .from('product_images')
+          .delete()
+          .eq('product_id', productId)
+          
+        if (deleteError) {
+          console.error('删除旧图片关联失败:', deleteError)
+        }
+      }
+      
+      // 添加图片到product_images表
+      const imageData = imageUrls.map((img, index) => ({
+        product_id: productId,
+        image_url: img.url,
+        is_main: img.isMain,
+        display_order: index
+      }))
+      
+      if (imageData.length > 0) {
+        const { error: imgError } = await supabase
+          .from('product_images')
+          .insert(imageData)
+          
+        if (imgError) {
+          console.error('保存商品图片失败:', imgError)
+          alert('商品已保存，但图片保存失败')
+        }
       }
   
       resetForm()
@@ -359,41 +400,34 @@ export default function ProductsPage() {
     setEditingProduct(product)
     
     // 处理图片
-    if (product.image_url) {
-      const imageUrls = product.image_url.split(',').filter(Boolean);
+    if (product.product_images && product.product_images.length > 0) {
       const productImgs: ProductImage[] = [];
       
-      // 处理图片，第一张为主图
-      imageUrls.forEach((url, index) => {
+      // 将product_images转换成ProductImage类型
+      product.product_images.forEach((img) => {
         productImgs.push({
           id: uuidv4(),
           file: null,
-          previewUrl: url,
+          previewUrl: img.image_url,
           uploaded: true,
           uploading: false,
           error: null,
-          publicUrl: url,
-          isMain: index === 0 // 第一张为主图
+          publicUrl: img.image_url,
+          isMain: img.is_main
         });
       });
       
       setProductImages(productImgs);
-      
-      setFormData({
-        name: product.name,
-        description: product.description,
-        price: product.price.toString(),
-        category: product.category.toString(),
-      });
     } else {
-      setFormData({
-        name: product.name,
-        description: product.description,
-        price: product.price.toString(),
-        category: product.category.toString(),
-      });
       setProductImages([]);
     }
+    
+    setFormData({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      category: product.category.toString(),
+    });
     
     // 滚动到表单
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -407,6 +441,17 @@ export default function ProductsPage() {
     setDeleteLoading(id)
     
     try {
+      // 首先删除product_images记录
+      const { error: imgError } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', id)
+        
+      if (imgError) {
+        console.error('删除商品图片失败:', imgError)
+      }
+      
+      // 然后删除商品
       const { error } = await supabase
         .from('products')
         .delete()
@@ -425,12 +470,6 @@ export default function ProductsPage() {
     } finally {
       setDeleteLoading(null)
     }
-  }
-
-  // 格式化图片URL显示
-  function formatImageUrl(url: string | null | undefined): string[] {
-    if (!url) return []
-    return url.split(',').filter(Boolean)
   }
 
   return (
@@ -627,8 +666,11 @@ export default function ProductsPage() {
         {products.map((product) => {
           // 查找分类名称
           const categoryName = categories.find(c => c.id === product.category)?.name || '未知分类';
-          // 处理多图片URL
-          const imageUrls = formatImageUrl(product.image_url);
+          // 获取产品图片
+          const productImages = product.product_images || [];
+          // 获取主图和附加图片
+          const mainImage = productImages.find(img => img.is_main)?.image_url;
+          const additionalImages = productImages.filter(img => !img.is_main).map(img => img.image_url);
           
           return (
             <div
@@ -651,33 +693,37 @@ export default function ProductsPage() {
                 </button>
               </div>
               
-              {imageUrls.length > 0 && (
-                <div className="mb-4">
-                  {/* 主图 */}
-                  <div className="h-40 rounded-md overflow-hidden bg-gray-100 mb-2">
+              <div className="mb-4">
+                {/* 主图 */}
+                <div className="h-40 rounded-md overflow-hidden bg-gray-100 mb-2">
+                  {mainImage ? (
                     <img 
-                      src={imageUrls[0]} 
+                      src={mainImage} 
                       alt={product.name} 
                       className="w-full h-full object-cover"
                     />
-                  </div>
-                  
-                  {/* 缩略图 */}
-                  {imageUrls.length > 1 && (
-                    <div className="grid grid-cols-4 gap-2 mt-2">
-                      {imageUrls.slice(1, 5).map((url, idx) => (
-                        <div key={idx} className="h-16 rounded-md overflow-hidden bg-gray-100">
-                          <img 
-                            src={url} 
-                            alt={`${product.name}-${idx}`} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                      <span className="text-gray-400">无图片</span>
                     </div>
                   )}
                 </div>
-              )}
+                
+                {/* 缩略图 */}
+                {additionalImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    {additionalImages.slice(0, 4).map((url, idx) => (
+                      <div key={idx} className="h-16 rounded-md overflow-hidden bg-gray-100">
+                        <img 
+                          src={url} 
+                          alt={`${product.name}-${idx}`} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               
               <h3 className="text-lg font-semibold pr-20 text-gray-800 mb-2">{product.name}</h3>
               <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
