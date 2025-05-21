@@ -16,6 +16,8 @@ export default function ProductsPage() {
     price: '',
     category: ''
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null)
 
   useEffect(() => {
     fetchProducts()
@@ -68,28 +70,65 @@ export default function ProductsPage() {
       return
     }
     
-    const { error } = await supabase
-      .from('products')
-      .insert([{
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        price: parseFloat(formData.price),
-        category: parseInt(formData.category)
-      }])
-
-    if (error) {
-      console.error('Error adding product:', error)
-      alert(`添加商品失败: ${error.message}`)
+    setIsLoading(true)
+    
+    try {
+      const { error } = await supabase
+        .from('products')
+        .insert([{
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          price: parseFloat(formData.price),
+          category: parseInt(formData.category)
+        }])
+  
+      if (error) {
+        console.error('Error adding product:', error)
+        alert(`添加商品失败: ${error.message}`)
+        return
+      }
+  
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        category: categories.length > 0 ? categories[0].id.toString() : ''
+      })
+      await fetchProducts()
+    } catch (err) {
+      console.error('Error:', err)
+      alert('添加商品时发生错误')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  async function deleteProduct(id: number) {
+    if (!confirm('确定要删除此商品吗？此操作不可恢复。')) {
       return
     }
-
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      category: categories.length > 0 ? categories[0].id.toString() : ''
-    })
-    fetchProducts()
+    
+    setDeleteLoading(id)
+    
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id)
+        
+      if (error) {
+        console.error('Error deleting product:', error)
+        alert(`删除商品失败: ${error.message}`)
+        return
+      }
+      
+      await fetchProducts()
+    } catch (err) {
+      console.error('Error:', err)
+      alert('删除商品时发生错误')
+    } finally {
+      setDeleteLoading(null)
+    }
   }
 
   return (
@@ -151,9 +190,10 @@ export default function ProductsPage() {
         
         <button
           type="submit"
-          className="w-full px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="w-full px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+          disabled={isLoading}
         >
-          添加商品
+          {isLoading ? '添加中...' : '添加商品'}
         </button>
       </form>
 
@@ -165,9 +205,19 @@ export default function ProductsPage() {
           return (
             <div
               key={product.id}
-              className="p-4 border rounded shadow hover:shadow-md"
+              className="p-4 border rounded shadow hover:shadow-md relative"
             >
-              <h3 className="text-lg font-semibold">{product.name}</h3>
+              <div className="absolute top-2 right-2 flex gap-2">
+                <button 
+                  onClick={() => deleteProduct(product.id)}
+                  className="p-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-red-300"
+                  disabled={deleteLoading === product.id}
+                >
+                  {deleteLoading === product.id ? '删除中...' : '删除'}
+                </button>
+              </div>
+              
+              <h3 className="text-lg font-semibold pr-16">{product.name}</h3>
               <p className="text-sm text-gray-600 mb-1">{product.description}</p>
               <p className="text-sm text-gray-500 mb-2">分类: {categoryName}</p>
               <p className="text-lg font-bold text-blue-600">¥{product.price.toFixed(2)}</p>

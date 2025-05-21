@@ -9,6 +9,9 @@ type Category = Database['public']['Tables']['categories']['Row']
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [newCategory, setNewCategory] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     fetchCategories()
@@ -22,32 +25,80 @@ export default function CategoriesPage() {
 
     if (error) {
       console.error('Error fetching categories:', error)
+      setErrorMessage('加载分类失败，请刷新页面重试')
       return
     }
 
-    setCategories(data)
+    setCategories(data || [])
+    setErrorMessage(null)
   }
 
   async function addCategory(e: React.FormEvent) {
     e.preventDefault()
     if (!newCategory.trim()) return
-
-    const { error } = await supabase
-      .from('categories')
-      .insert([{ name: newCategory.trim() }])
-
-    if (error) {
-      console.error('Error adding category:', error)
+    
+    setIsLoading(true)
+    
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .insert([{ name: newCategory.trim() }])
+  
+      if (error) {
+        console.error('Error adding category:', error)
+        setErrorMessage(`添加分类失败: ${error.message}`)
+        return
+      }
+  
+      setNewCategory('')
+      setErrorMessage(null)
+      await fetchCategories()
+    } catch (err) {
+      console.error('Error:', err)
+      setErrorMessage('添加分类时发生错误')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  async function deleteCategory(id: number) {
+    if (!confirm('确定要删除此分类吗？如果该分类下有商品，删除操作可能会失败。')) {
       return
     }
-
-    setNewCategory('')
-    fetchCategories()
+    
+    setDeleteLoading(id)
+    
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id)
+        
+      if (error) {
+        console.error('Error deleting category:', error)
+        setErrorMessage(`删除分类失败: ${error.message}`)
+        return
+      }
+      
+      setErrorMessage(null)
+      await fetchCategories()
+    } catch (err) {
+      console.error('Error:', err)
+      setErrorMessage('删除分类时发生错误')
+    } finally {
+      setDeleteLoading(null)
+    }
   }
 
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">分类管理</h1>
+      
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {errorMessage}
+        </div>
+      )}
       
       <form onSubmit={addCategory} className="mb-8">
         <div className="flex gap-4">
@@ -57,12 +108,14 @@ export default function CategoriesPage() {
             onChange={(e) => setNewCategory(e.target.value)}
             placeholder="输入分类名称"
             className="flex-1 px-4 py-2 border rounded"
+            disabled={isLoading}
           />
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+            disabled={isLoading || !newCategory.trim()}
           >
-            添加分类
+            {isLoading ? '添加中...' : '添加分类'}
           </button>
         </div>
       </form>
@@ -71,9 +124,19 @@ export default function CategoriesPage() {
         {categories.map((category) => (
           <div
             key={category.id}
-            className="p-4 border rounded shadow hover:shadow-md"
+            className="p-4 border rounded shadow hover:shadow-md relative"
           >
-            <h3 className="text-lg font-semibold">{category.name}</h3>
+            <div className="absolute top-2 right-2">
+              <button 
+                onClick={() => deleteCategory(category.id)}
+                className="p-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-red-300"
+                disabled={deleteLoading === category.id}
+              >
+                {deleteLoading === category.id ? '删除中...' : '删除'}
+              </button>
+            </div>
+            
+            <h3 className="text-lg font-semibold pr-12">{category.name}</h3>
             <p className="text-sm text-gray-500">
               创建时间: {new Date(category.created_at).toLocaleString()}
             </p>
