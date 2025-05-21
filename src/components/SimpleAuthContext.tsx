@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { localSignIn, getLocalSession, setLocalSession, clearLocalSession } from '@/lib/simple-auth'
 
+// 版本标记：ca79066回退版本
+
 // 定义简化认证上下文类型
 type SimpleAuthContextType = {
   user: any | null
