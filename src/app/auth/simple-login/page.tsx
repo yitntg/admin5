@@ -111,20 +111,6 @@ export default function SimpleLoginPage() {
               添加管理员用户
             </Link>
           </div>
-          
-          <div className="text-center text-sm mt-4">
-            <p>初次使用请先创建admin_users表：</p>
-            <div className="mt-2 bg-gray-100 p-3 rounded text-xs text-left overflow-auto">
-              <pre>
-                {`CREATE TABLE public.admin_users (
-  id SERIAL PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);`}
-              </pre>
-            </div>
-          </div>
         </div>
       </div>
     </div>
