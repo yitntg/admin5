@@ -181,10 +181,10 @@ export default function ProductsPage() {
         return
       }
       
-      // 限制文件大小（图片2MB，视频10MB）
-      const sizeLimit = isVideo ? 10 * 1024 * 1024 : 2 * 1024 * 1024
+      // 限制文件大小（图片5MB，视频20MB）
+      const sizeLimit = isVideo ? 20 * 1024 * 1024 : 5 * 1024 * 1024
       if (file.size > sizeLimit) {
-        alert(`${isVideo ? '视频' : '图片'}大小不能超过${isVideo ? '10MB' : '2MB'}`)
+        alert(`${isVideo ? '视频' : '图片'}大小不能超过${isVideo ? '20MB' : '5MB'}`)
         return
       }
       
@@ -245,6 +245,8 @@ export default function ProductsPage() {
     
     const uploadedUrls: {url: string, isMain: boolean}[] = []
     const updatedImages = [...productImages]
+    const totalFiles = updatedImages.filter(img => img.file && !img.uploaded).length
+    let completedFiles = 0
     
     // 逐个上传图片
     for (let i = 0; i < updatedImages.length; i++) {
@@ -299,6 +301,12 @@ export default function ProductsPage() {
           uploading: false,
           publicUrl
         }
+        
+        // 更新进度
+        completedFiles++
+        if (totalFiles > 0) {
+          setUploadProgress(Math.round((completedFiles / totalFiles) * 100))
+        }
       } catch (error) {
         console.error('上传图片失败:', error)
         
@@ -307,6 +315,12 @@ export default function ProductsPage() {
           ...image,
           uploading: false,
           error: '上传失败'
+        }
+        
+        // 即使失败也更新进度
+        completedFiles++
+        if (totalFiles > 0) {
+          setUploadProgress(Math.round((completedFiles / totalFiles) * 100))
         }
       }
       
@@ -684,6 +698,18 @@ export default function ProductsPage() {
             </div>
           )}
         </div>
+        
+        {isLoading && uploadProgress > 0 && uploadProgress < 100 && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-600 mb-1">媒体上传进度: {uploadProgress}%</p>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full" 
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
         
         <div className="flex gap-2 md:gap-4 pt-3">
           <button
