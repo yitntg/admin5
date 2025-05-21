@@ -85,6 +85,32 @@ export interface Database {
           warranty?: boolean
         }
       }
+      product_images: {
+        Row: {
+          id: number
+          product_id: number
+          image_url: string
+          is_main: boolean
+          display_order: number
+          created_at?: string
+        }
+        Insert: {
+          id?: number
+          product_id: number
+          image_url: string
+          is_main?: boolean
+          display_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          product_id?: number
+          image_url?: string
+          is_main?: boolean
+          display_order?: number
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

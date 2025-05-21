@@ -95,26 +95,55 @@ export default function ProductsPage() {
   }, [categories, editingProduct])
 
   async function fetchProducts() {
-    // 使用联接查询获取产品及其图片
-    const { data, error } = await supabase
+    // 单独查询产品，不使用联接查询
+    const { data: productsData, error: productsError } = await supabase
       .from('products')
-      .select(`
-        *,
-        product_images (
-          id,
-          image_url,
-          is_main,
-          display_order
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching products:', error)
+    if (productsError) {
+      console.error('Error fetching products:', productsError)
       return
     }
 
-    setProducts(data || [])
+    // 如果有产品数据，再获取每个产品的图片
+    if (productsData && productsData.length > 0) {
+      // 获取所有产品ID
+      const productIds = productsData.map(product => product.id)
+      
+      // 查询这些产品的图片
+      const { data: imagesData, error: imagesError } = await supabase
+        .from('product_images')
+        .select('*')
+        .in('product_id', productIds)
+        .order('display_order', { ascending: true })
+        
+      if (imagesError) {
+        console.error('Error fetching product images:', imagesError)
+      }
+      
+      // 将图片数据与产品关联
+      if (imagesData && imagesData.length > 0) {
+        const productsWithImages = productsData.map(product => {
+          // 找出属于这个产品的所有图片
+          const productImages = imagesData.filter(img => img.product_id === product.id)
+          return {
+            ...product,
+            product_images: productImages
+          }
+        })
+        
+        setProducts(productsWithImages)
+      } else {
+        // 没有图片数据，直接设置产品
+        setProducts(productsData.map(product => ({
+          ...product,
+          product_images: []
+        })))
+      }
+    } else {
+      setProducts([])
+    }
   }
 
   async function fetchCategories() {
