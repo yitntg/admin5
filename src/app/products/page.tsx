@@ -270,7 +270,7 @@ export default function ProductsPage() {
         // 生成唯一文件名
         const fileExt = image.file.name.split('.').pop()
         const fileName = `${uuidv4()}.${fileExt}`
-        const filePath = `products/${fileName}`
+        const filePath = fileName
         
         // 上传文件到Supabase Storage
         const { error: uploadError } = await supabase.storage
